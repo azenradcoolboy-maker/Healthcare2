@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Medical Terms Quiz</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=VT323&display=swap">
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+--page:#e9ece8;--body:#2b2f33;--key:#4a5057;--keytxt:#f1f3f2;--lcdbg:#a9c47a;--lcdtxt:#1f2e12;--hint:#3b4046}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--page:#14171a;--body:#23272b;--key:#3a4047;--keytxt:#f1f3f2;--lcdbg:#8fae5e;--lcdtxt:#16210c;--hint:#aeb4ba}}
+:root[data-theme="dark"]{--page:#14171a;--body:#23272b;--key:#3a4047;--keytxt:#f1f3f2;--lcdbg:#8fae5e;--lcdtxt:#16210c;--hint:#aeb4ba}
+*,*:before,*:after{box-sizing:inherit}
+html,body{height:100%;margin:0}
+body{background:var(--page);display:flex;align-items:center;justify-content:center;font-family:system-ui,sans-serif}
+.device{background:var(--body);border-radius:18px;padding:22px;width:min(92vw,400px)}
+.lcd{background:var(--lcdbg);border-radius:8px;padding:14px 10px;box-shadow:inset 0 0 0 3px rgba(0,0,0,.35)}
+.lcd pre{margin:0;font-family:'VT323',ui-monospace,Menlo,Consolas,monospace;font-size:clamp(22px,7.2vw,32px);line-height:1.25;color:var(--lcdtxt);white-space:pre}
+.pad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:20px}
+.pad button{background:var(--key);color:var(--keytxt);border:0;border-radius:10px;padding:16px 0;font-size:22px;font-family:inherit;cursor:pointer;touch-action:manipulation}
+.pad button:active{transform:translateY(2px)}
+.pad button:focus-visible{outline:3px solid var(--lcdbg);outline-offset:2px}
+.hintbox{margin-top:16px;color:var(--keytxt);text-align:center;min-height:3.4em}
+.hintbox label{font-size:13px;color:var(--hint);cursor:pointer}
+#hint{font-size:17px;margin-top:6px;min-height:1.4em}
+.hint{color:var(--hint);font-size:13px;margin:14px 2px 0;text-align:center}
+</style>
+</head>
+<body>
+<div class="device">
+  <div class="lcd" aria-live="polite"><pre id="lcd"></pre></div>
+  <div class="hintbox"><label><input type="checkbox" id="hintOn" checked> Show body-location hint</label><div id="hint" aria-live="polite"></div></div>
+  <div class="pad" id="pad"></div>
+  <p class="hint">Type your number, then # to submit &nbsp; * = backspace &nbsp; keyboard works too</p>
+</div>
+<script>
+const TERMS=["encephal/o", "cephal/o", "ophthalm/o", "blephar/o", "ot/o", "dermat/o", "stomat/o", "laryng/o", "thyroid/o", "esophag/o", "pneumon/o", "cardi/o", "axill/o", "hepat/o", "gastr/o", "cholecyst/o", "adip/o", "enter/o", "col/o", "cyst/o", "nephr/o", "phleb/o, ven/o", "arthr/o", "my/o", "oste/o", "rhin/o, nas/o", "cheil/o", "bucc/o", "cervic/o", "thorac/o", "mamm/o", "umbilic/o", "pelv/i", "inguin/o", "brachi/o", "carp/o", "dactyl/o", "crur/o", "ped/o", "om/o"];
+const HINTS=["Brain (inside the head)", "Head", "Eye", "Eyelid", "Ear", "Skin", "Mouth", "Voice box (larynx), in the throat", "Thyroid gland, front of the neck", "Esophagus, the tube from throat to stomach", "Lung (in the chest)", "Heart (in the chest)", "Armpit", "Liver (upper right abdomen)", "Stomach (upper left abdomen)", "Gallbladder (under the liver)", "Fat (under the skin)", "Intestines (small intestine)", "Colon (large intestine)", "Urinary bladder (lower abdomen)", "Kidney (back, below the ribs)", "Vein (blood vessel)", "Joint (where bones meet)", "Muscle", "Bone", "Nose", "Lip", "Cheek", "Neck", "Chest", "Breast", "Navel (belly button)", "Pelvis (hip area)", "Groin", "Arm (upper arm)", "Wrist", "Fingers or toes", "Leg (lower leg)", "Foot", "Shoulder"];
+const N=TERMS.length;
+let state="WAIT",order=[],q=0,score=0,buf="";
+const lcd=document.getElementById("lcd");
+const pad16=s=>(s+" ".repeat(16)).slice(0,16);
+function show(a,b){lcd.textContent=pad16(a)+"\n"+pad16(b)}
+function ansLine(){return ("Ans:"+buf+" ".repeat(10)).slice(0,10)+"Q"+(q+1)+"/"+N}
+const hint=document.getElementById("hint"),hintOn=document.getElementById("hintOn");
+function setHint(on){hint.textContent=on&&hintOn.checked?"Hint: "+HINTS[order[q]]:""}
+hintOn.addEventListener("change",()=>{hintOn.blur();setHint(state==="ASK"||state==="RESULT")});
+function question(){buf="";show(TERMS[order[q]],ansLine());setHint(true)}
+function start(){
+  order=[...Array(N).keys()];
+  for(let i=N-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[order[i],order[j]]=[order[j],order[i]]}
+  q=0;score=0;question();state="ASK";
+}
+function submit(){
+  const right=order[q]+1;
+  if(parseInt(buf,10)===right){score++;show("Correct!","#=Next")}
+  else show("Incorrect","Answer:"+right+" #=Next");
+  state="RESULT";
+}
+function press(k){
+  if(state==="WAIT"){if(k==="#")start();return}
+  if(state==="ASK"){
+    if(/^[0-9]$/.test(k)){
+      if(buf===""&&k==="0")return;
+      if(buf.length<2){buf+=k;lcd.textContent=pad16(TERMS[order[q]])+"\n"+pad16(ansLine());}
+    }else if(k==="*"){buf=buf.slice(0,-1);lcd.textContent=pad16(TERMS[order[q]])+"\n"+pad16(ansLine())}
+    else if(k==="#"&&buf.length>0)submit();
+    return;
+  }
+  if(state==="RESULT"){
+    if(k==="#"){q++;if(q>=N){show("Quiz Complete!","Score "+score+"/"+N+" #=Redo");setHint(false);state="DONE"}else{question();state="ASK"}}
+    return;
+  }
+  if(state==="DONE"&&k==="#")start();
+}
+const pad=document.getElementById("pad");
+["1","2","3","4","5","6","7","8","9","*","0","#"].forEach(k=>{
+  const b=document.createElement("button");b.textContent=k;b.setAttribute("aria-label",k==="#"?"Hash, enter":k==="*"?"Star, backspace":k);
+  b.addEventListener("click",()=>press(k));pad.appendChild(b);
+});
+document.addEventListener("keydown",e=>{
+  if(e.key==="Enter"||e.key==="#"){e.preventDefault();press("#")}
+  else if(e.key==="Backspace"||e.key==="*"){e.preventDefault();press("*")}
+  else if(/^[0-9]$/.test(e.key))press(e.key);
+});
+show("Medical Terms","Press # to Start");
+</script>
+</body>
+</html>
